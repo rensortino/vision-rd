@@ -1,0 +1,82 @@
+# --- Detector registries -------------------------------------------------
+# ultralytics_detectors: pretrained YOLO weights downloaded from HF Hub.
+# Each key is the output dir name and the leaderboard model_name.
+ultralytics_detectors:
+  yolo11s-nimble-narwhal-v6.0.0:
+    model_repo: pyronear/yolo11s_nimble-narwhal_v6.0.0
+    model_filename: best.pt
+
+# dfine_detectors: D-FINE checkpoints finetuned here on the training split.
+dfine_detectors:
+  dfine-nano:
+    checkpoint: ustc-community/dfine-nano-coco
+  dfine-small:
+    checkpoint: ustc-community/dfine-small-coco
+
+# yolo_trained_detectors: YOLO of the same architecture as the production
+# baseline, trained here on our train split (control / reproduction check).
+yolo_trained_detectors:
+  yolo11s-smoke-repro:
+    arch: yolo11s.pt # COCO-pretrained init, same arch as nimble-narwhal
+    workers: 8
+  yolo26s-smoke:
+    arch: yolo26s.pt # YOLO26 small (10.01M) — closest param match to the 9.43M baseline
+    workers: 2 # 8 workers segfault (SIGSEGV) stochastically with YOLO26 on this CUDA stack
+  yolo26n-smoke:
+    arch: yolo26n.pt # YOLO26 nano (2.57M) — efficiency point
+    workers: 2
+
+# hf_detr_detectors: other HF DETR-family detectors, finetuned here. Smallest
+# variant of each family (closest param count to the 9.4M YOLO baseline).
+hf_detr_detectors:
+  lwdetr-tiny:
+    checkpoint: AnnaZhang/lwdetr_tiny_60e_coco # 12.05M params
+  rtdetrv2-r18:
+    checkpoint: PekingU/rtdetr_v2_r18vd # 20.17M params
+
+# --- D-FINE finetuning ----------------------------------------------------
+# 1024px matches the YOLO baseline's input size; smoke boxes are tiny (~75%
+# are <32px even at 640), so resolution matters. batch_size=8 at 1024px peaks
+# around ~11GB for D-FINE-small (measured), comfortably within a 24GB GPU.
+train:
+  image_size: 1024
+  epochs: 100
+  batch_size: 8
+  learning_rate: 0.0001
+  weight_decay: 0.0001
+  early_stop_patience: 20 # raised from 8: DETR val loss improves slowly; 8 cut training off early
+  seed: 42
+
+# --- YOLO control training (reproduce the production baseline) -------------
+train_yolo:
+  imgsz: 1024 # production inference resolution
+  epochs: 100
+  batch: 16
+  patience: 20
+  seed: 42
+
+# --- Inference (low conf: cache all boxes; operating point selected at eval) -
+# D-FINE inference resolution comes from the saved image processor (1024).
+infer_ultralytics:
+  confidence_threshold: 0.01
+  iou_nms: 0.5
+  image_size: 1024
+
+infer_dfine:
+  confidence_threshold: 0.01
+
+# --- Evaluation -----------------------------------------------------------
+# The operating confidence is selected per-model on val (max F1), then scored
+# on test. iou_threshold is the prediction<->GT match IoU (smoke is diffuse).
+evaluate:
+  iou_threshold: 0.1
+  conf_min: 0.01
+  conf_max: 0.95
+  conf_step: 0.01
+
+# --- Profiling (forward-pass cost at each backend's operating input size) --
+profile:
+  ultralytics_image_size: 1024
+  dfine_image_size: 1024
+  warmup: 10
+  iters: 50

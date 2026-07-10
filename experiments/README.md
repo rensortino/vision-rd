@@ -13,6 +13,8 @@ experiments/
 │   ├── pyro-detector-baseline/        # Production pyro-predictor wrapped as a TemporalModel baseline
 │   ├── tracking-fsm-baseline/         # YOLO + IoU FSM tracker baseline
 │   └── temporal-model-leaderboard/    # Evaluation & ranking of temporal models on pyro-dataset v3.0.0
+├── detectors/                         # Frame-level object detector evaluation
+│   └── detector-leaderboard/          # Object-detection metrics & ranking of detectors (no temporal stage)
 └── data-quality/                      # Label-error audits on the pyro-dataset
     ├── sequential/                    # Sequence-level audit (TemporalModel oracle)
     └── frame-level/                   # Frame-level audit (YOLO oracle + FiftyOne)
@@ -22,6 +24,9 @@ experiments/
 
 - **`temporal-models/`** — new candidate models for the server-side temporal
   verification stage (bbox tubes, FSM tracking, change detection, …).
+- **`detectors/`** — evaluate the frame-level object detector on its own
+  (per-frame box localization, no temporal logic) and rank detectors on a
+  leaderboard.
 - **`data-quality/`** — use an existing model as an *oracle* against the
   pyro-dataset ground truth and surface disagreements as FiftyOne review
   sets. `sequential/` audits per-sequence labels (`wildfire/` vs `fp/`);

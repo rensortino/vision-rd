@@ -1,0 +1,1787 @@
+schema: '2.0'
+stages:
+  prepare@yolo11s-nimble-narwhal-v6.0.0:
+    cmd: uv run python scripts/prepare.py --model-repo 
+      pyronear/yolo11s_nimble-narwhal_v6.0.0 --model-filename best.pt 
+      --output-model-dir data/01_raw/models/yolo11s-nimble-narwhal-v6.0.0
+    deps:
+    - path: scripts/prepare.py
+      hash: md5
+      md5: b3230dcfdf699688a0ac6090f0109b7f
+      size: 1855
+    outs:
+    - path: data/01_raw/models/yolo11s-nimble-narwhal-v6.0.0
+      hash: md5
+      md5: 909e195c8e99e88798254027fdec9fe8.dir
+      size: 19225943
+      nfiles: 4
+  infer@yolo11s-nimble-narwhal-v6.0.0:
+    cmd: uv run python scripts/infer.py --data-dir data/01_raw/datasets/test 
+      --model-path data/01_raw/models/yolo11s-nimble-narwhal-v6.0.0/best.pt 
+      --output-file 
+      data/02_intermediate/yolo11s-nimble-narwhal-v6.0.0/predictions.json 
+      --confidence-threshold 0.01 --iou-nms 0.5 --image-size 1024
+    deps:
+    - path: data/01_raw/datasets/test/images
+      hash: md5
+      md5: c1b8a2b8d8cf523ec65e40d9b9c86bb4.dir
+      size: 272435582
+      nfiles: 2640
+    - path: data/01_raw/models/yolo11s-nimble-narwhal-v6.0.0
+      hash: md5
+      md5: 9f54bacab07e9fdf738909d227c2c9fa.dir
+      size: 19225943
+      nfiles: 4
+    - path: scripts/infer.py
+      hash: md5
+      md5: 4caeefe6373ef14b86b87f949ecd87e2
+      size: 2740
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: 64bb0048891641be155c245351c405dc.dir
+      size: 46107
+      nfiles: 14
+    params:
+      params.yaml:
+        infer.confidence_threshold: 0.01
+        infer.image_size: 1024
+        infer.iou_nms: 0.5
+    outs:
+    - path: data/02_intermediate/yolo11s-nimble-narwhal-v6.0.0/predictions.json
+      hash: md5
+      md5: c2143880b54a04d7a8a2aa5a7e33ce36
+      size: 1213175
+  evaluate@yolo11s-nimble-narwhal-v6.0.0:
+    cmd: uv run python scripts/evaluate.py --predictions-file 
+      data/02_intermediate/yolo11s-nimble-narwhal-v6.0.0/predictions.json 
+      --data-dir data/01_raw/datasets/test --model-name 
+      yolo11s-nimble-narwhal-v6.0.0 --output-dir 
+      data/07_model_output/yolo11s-nimble-narwhal-v6.0.0 --conf-threshold 0.2 
+      --iou-threshold 0.1
+    deps:
+    - path: data/01_raw/datasets/test/images
+      hash: md5
+      md5: c1b8a2b8d8cf523ec65e40d9b9c86bb4.dir
+      size: 272435582
+      nfiles: 2640
+    - path: data/01_raw/datasets/test/labels
+      hash: md5
+      md5: 87d112314623efdd79627bed93a8a5e8.dir
+      size: 96354
+      nfiles: 2640
+    - path: data/02_intermediate/yolo11s-nimble-narwhal-v6.0.0/predictions.json
+      hash: md5
+      md5: c2143880b54a04d7a8a2aa5a7e33ce36
+      size: 1213175
+    - path: scripts/evaluate.py
+      hash: md5
+      md5: 2c73af6fd9b593316a53b6c44e36b8c6
+      size: 2907
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: 64bb0048891641be155c245351c405dc.dir
+      size: 46107
+      nfiles: 14
+    params:
+      params.yaml:
+        evaluate.conf_threshold: 0.2
+        evaluate.iou_threshold: 0.1
+    outs:
+    - path: data/07_model_output/yolo11s-nimble-narwhal-v6.0.0
+      hash: md5
+      md5: e0dde777d5b20f86eb53d93a64368c47.dir
+      size: 434
+      nfiles: 1
+  leaderboard:
+    cmd: uv run python scripts/leaderboard.py --results-dir data/07_model_output
+      --output-dir data/08_reporting
+    deps:
+    - path: data/07_model_output
+      hash: md5
+      md5: 9d72fcb90b3889f30da7215a40fc9c11.dir
+      size: 6026
+      nfiles: 27
+    - path: scripts/leaderboard.py
+      hash: md5
+      md5: d1f82c150667c1d9d0987cec77ad0aad
+      size: 2564
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: dd3bc2263371ff7d092e85ad5d7c8e41.dir
+      size: 98695
+      nfiles: 22
+    outs:
+    - path: data/08_reporting/leaderboard.json
+      hash: md5
+      md5: 1cfb81eb3abc8c69ba4d0e5e4480e67f
+      size: 6240
+    - path: data/08_reporting/leaderboard.txt
+      hash: md5
+      md5: ba19cb3df55dfbce490d138267e57ed7
+      size: 1507
+  train@dfine-nano:
+    cmd: uv run python scripts/train.py --checkpoint 
+      ustc-community/dfine-nano-coco --train-dir data/01_raw/datasets/train 
+      --val-dir data/01_raw/datasets/val --output-dir data/06_models/dfine-nano 
+      --image-size 1024 --epochs 100 --batch-size 8 --learning-rate 0.0001 
+      --weight-decay 0.0001 --early-stop-patience 20 --seed 42
+    deps:
+    - path: data/01_raw/datasets/train/images
+      hash: md5
+      md5: 893798e3318b11f46b2d79c993bfd00f.dir
+      size: 1762074866
+      nfiles: 14767
+    - path: data/01_raw/datasets/train/labels
+      hash: md5
+      md5: b64bf3a4221c2fabebe3e58d52f45df2.dir
+      size: 869735
+      nfiles: 14767
+    - path: data/01_raw/datasets/val/images
+      hash: md5
+      md5: 9ed984ce07931c39df465dd91a68fadd.dir
+      size: 162865902
+      nfiles: 1426
+    - path: data/01_raw/datasets/val/labels
+      hash: md5
+      md5: 01b74380068e5d970435855735eb5bc0.dir
+      size: 84113
+      nfiles: 1426
+    - path: scripts/train.py
+      hash: md5
+      md5: c3f02900b32b6690d9ade9a83cab35d8
+      size: 2330
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: dd3bc2263371ff7d092e85ad5d7c8e41.dir
+      size: 98695
+      nfiles: 22
+    params:
+      params.yaml:
+        train.batch_size: 8
+        train.early_stop_patience: 20
+        train.epochs: 100
+        train.image_size: 1024
+        train.learning_rate: 0.0001
+        train.seed: 42
+        train.weight_decay: 0.0001
+    outs:
+    - path: data/06_models/dfine-nano
+      hash: md5
+      md5: baee1b2dfbf6397523fc1f0abf635935.dir
+      size: 15079483
+      nfiles: 3
+  train@dfine-small:
+    cmd: uv run python scripts/train.py --checkpoint 
+      ustc-community/dfine-small-coco --train-dir data/01_raw/datasets/train 
+      --val-dir data/01_raw/datasets/val --output-dir data/06_models/dfine-small
+      --image-size 1024 --epochs 100 --batch-size 8 --learning-rate 0.0001 
+      --weight-decay 0.0001 --early-stop-patience 20 --seed 42
+    deps:
+    - path: data/01_raw/datasets/train/images
+      hash: md5
+      md5: 893798e3318b11f46b2d79c993bfd00f.dir
+      size: 1762074866
+      nfiles: 14767
+    - path: data/01_raw/datasets/train/labels
+      hash: md5
+      md5: b64bf3a4221c2fabebe3e58d52f45df2.dir
+      size: 869735
+      nfiles: 14767
+    - path: data/01_raw/datasets/val/images
+      hash: md5
+      md5: 9ed984ce07931c39df465dd91a68fadd.dir
+      size: 162865902
+      nfiles: 1426
+    - path: data/01_raw/datasets/val/labels
+      hash: md5
+      md5: 01b74380068e5d970435855735eb5bc0.dir
+      size: 84113
+      nfiles: 1426
+    - path: scripts/train.py
+      hash: md5
+      md5: c3f02900b32b6690d9ade9a83cab35d8
+      size: 2330
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: d89db77bf5b75f83639b7e1e0911c901.dir
+      size: 87518
+      nfiles: 22
+    params:
+      params.yaml:
+        train.batch_size: 8
+        train.early_stop_patience: 20
+        train.epochs: 100
+        train.image_size: 1024
+        train.learning_rate: 0.0001
+        train.seed: 42
+        train.weight_decay: 0.0001
+    outs:
+    - path: data/06_models/dfine-small
+      hash: md5
+      md5: a41dc9db04fc750a192857b93614a9f2.dir
+      size: 41095934
+      nfiles: 3
+  infer_ultralytics@yolo11s-nimble-narwhal-v6.0.0:
+    cmd: uv run python scripts/infer.py --backend ultralytics --data-dir 
+      data/01_raw/datasets/test --model-path 
+      data/01_raw/models/yolo11s-nimble-narwhal-v6.0.0/best.pt --output-file 
+      data/02_intermediate/yolo11s-nimble-narwhal-v6.0.0/predictions.json 
+      --confidence-threshold 0.01 --iou-nms 0.5 --image-size 1024
+    deps:
+    - path: data/01_raw/datasets/test/images
+      hash: md5
+      md5: c1b8a2b8d8cf523ec65e40d9b9c86bb4.dir
+      size: 272435582
+      nfiles: 2640
+    - path: data/01_raw/models/yolo11s-nimble-narwhal-v6.0.0
+      hash: md5
+      md5: 9f54bacab07e9fdf738909d227c2c9fa.dir
+      size: 19225943
+      nfiles: 4
+    - path: scripts/infer.py
+      hash: md5
+      md5: 0af535227f5bb0414937bc2422bc21e6
+      size: 3862
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: 352818209a9b633eef9b0d5592bd296c.dir
+      size: 84622
+      nfiles: 22
+    params:
+      params.yaml:
+        infer_ultralytics.confidence_threshold: 0.01
+        infer_ultralytics.image_size: 1024
+        infer_ultralytics.iou_nms: 0.5
+    outs:
+    - path: data/02_intermediate/yolo11s-nimble-narwhal-v6.0.0/predictions.json
+      hash: md5
+      md5: c2143880b54a04d7a8a2aa5a7e33ce36
+      size: 1213175
+  infer_dfine@dfine-nano:
+    cmd: uv run python scripts/infer.py --backend dfine --data-dir 
+      data/01_raw/datasets/test --model-dir data/06_models/dfine-nano 
+      --output-file data/02_intermediate/dfine-nano/predictions.json 
+      --confidence-threshold 0.01
+    deps:
+    - path: data/01_raw/datasets/test/images
+      hash: md5
+      md5: c1b8a2b8d8cf523ec65e40d9b9c86bb4.dir
+      size: 272435582
+      nfiles: 2640
+    - path: data/06_models/dfine-nano
+      hash: md5
+      md5: 2718f3e72e78d0c2d430c20e444715f1.dir
+      size: 15079481
+      nfiles: 3
+    - path: scripts/infer.py
+      hash: md5
+      md5: 0af535227f5bb0414937bc2422bc21e6
+      size: 3862
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: 352818209a9b633eef9b0d5592bd296c.dir
+      size: 84622
+      nfiles: 22
+    params:
+      params.yaml:
+        infer_dfine.confidence_threshold: 0.01
+    outs:
+    - path: data/02_intermediate/dfine-nano/predictions.json
+      hash: md5
+      md5: 6b073eecb6cedc9ed461ce3b3b264488
+      size: 8067738
+  infer_dfine@dfine-small:
+    cmd: uv run python scripts/infer.py --backend dfine --data-dir 
+      data/01_raw/datasets/test --model-dir data/06_models/dfine-small 
+      --output-file data/02_intermediate/dfine-small/predictions.json 
+      --confidence-threshold 0.01
+    deps:
+    - path: data/01_raw/datasets/test/images
+      hash: md5
+      md5: c1b8a2b8d8cf523ec65e40d9b9c86bb4.dir
+      size: 272435582
+      nfiles: 2640
+    - path: data/06_models/dfine-small
+      hash: md5
+      md5: dee0222e86e9fcda3052e3958fd26c9e.dir
+      size: 41095932
+      nfiles: 3
+    - path: scripts/infer.py
+      hash: md5
+      md5: 0af535227f5bb0414937bc2422bc21e6
+      size: 3862
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: 352818209a9b633eef9b0d5592bd296c.dir
+      size: 84622
+      nfiles: 22
+    params:
+      params.yaml:
+        infer_dfine.confidence_threshold: 0.01
+    outs:
+    - path: data/02_intermediate/dfine-small/predictions.json
+      hash: md5
+      md5: 97ac2a82548e599b6931b47c68c8bd6a
+      size: 540100
+  evaluate_ultralytics@yolo11s-nimble-narwhal-v6.0.0:
+    cmd: uv run python scripts/evaluate.py --model-name 
+      yolo11s-nimble-narwhal-v6.0.0 --val-predictions 
+      data/02_intermediate/yolo11s-nimble-narwhal-v6.0.0/val_predictions.json 
+      --val-dir data/01_raw/datasets/val --test-predictions 
+      data/02_intermediate/yolo11s-nimble-narwhal-v6.0.0/test_predictions.json 
+      --test-dir data/01_raw/datasets/test --output-dir 
+      data/07_model_output/yolo11s-nimble-narwhal-v6.0.0 --iou-threshold 0.1 
+      --conf-min 0.01 --conf-max 0.95 --conf-step 0.01
+    deps:
+    - path: data/01_raw/datasets/test/images
+      hash: md5
+      md5: c1b8a2b8d8cf523ec65e40d9b9c86bb4.dir
+      size: 272435582
+      nfiles: 2640
+    - path: data/01_raw/datasets/test/labels
+      hash: md5
+      md5: 87d112314623efdd79627bed93a8a5e8.dir
+      size: 96354
+      nfiles: 2640
+    - path: data/01_raw/datasets/val/images
+      hash: md5
+      md5: 9ed984ce07931c39df465dd91a68fadd.dir
+      size: 162865902
+      nfiles: 1426
+    - path: data/01_raw/datasets/val/labels
+      hash: md5
+      md5: 01b74380068e5d970435855735eb5bc0.dir
+      size: 84113
+      nfiles: 1426
+    - path: 
+        data/02_intermediate/yolo11s-nimble-narwhal-v6.0.0/test_predictions.json
+      hash: md5
+      md5: c2143880b54a04d7a8a2aa5a7e33ce36
+      size: 1213175
+    - path: 
+        data/02_intermediate/yolo11s-nimble-narwhal-v6.0.0/val_predictions.json
+      hash: md5
+      md5: b329f27b1bd78f784518e5aa0024ef01
+      size: 908510
+    - path: scripts/evaluate.py
+      hash: md5
+      md5: ed9b61ad6cec967a302ab85a2ece20b2
+      size: 3477
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: 4b21c0d0423d3182279c5327e1c47475.dir
+      size: 87030
+      nfiles: 22
+    params:
+      params.yaml:
+        evaluate.conf_max: 0.95
+        evaluate.conf_min: 0.01
+        evaluate.conf_step: 0.01
+        evaluate.iou_threshold: 0.1
+    outs:
+    - path: data/07_model_output/yolo11s-nimble-narwhal-v6.0.0/metrics.json
+      hash: md5
+      md5: 6d6c03ea0332460e43b838acca7d533a
+      size: 422
+  evaluate_dfine@dfine-nano:
+    cmd: uv run python scripts/evaluate.py --model-name dfine-nano 
+      --val-predictions data/02_intermediate/dfine-nano/val_predictions.json 
+      --val-dir data/01_raw/datasets/val --test-predictions 
+      data/02_intermediate/dfine-nano/test_predictions.json --test-dir 
+      data/01_raw/datasets/test --output-dir data/07_model_output/dfine-nano 
+      --iou-threshold 0.1 --conf-min 0.01 --conf-max 0.95 --conf-step 0.01
+    deps:
+    - path: data/01_raw/datasets/test/images
+      hash: md5
+      md5: c1b8a2b8d8cf523ec65e40d9b9c86bb4.dir
+      size: 272435582
+      nfiles: 2640
+    - path: data/01_raw/datasets/test/labels
+      hash: md5
+      md5: 87d112314623efdd79627bed93a8a5e8.dir
+      size: 96354
+      nfiles: 2640
+    - path: data/01_raw/datasets/val/images
+      hash: md5
+      md5: 9ed984ce07931c39df465dd91a68fadd.dir
+      size: 162865902
+      nfiles: 1426
+    - path: data/01_raw/datasets/val/labels
+      hash: md5
+      md5: 01b74380068e5d970435855735eb5bc0.dir
+      size: 84113
+      nfiles: 1426
+    - path: data/02_intermediate/dfine-nano/test_predictions.json
+      hash: md5
+      md5: a754cfbd442bad71874771170210ae4c
+      size: 615471
+    - path: data/02_intermediate/dfine-nano/val_predictions.json
+      hash: md5
+      md5: b412d1212e88e06071f7caf67f5233b5
+      size: 377633
+    - path: scripts/evaluate.py
+      hash: md5
+      md5: ed9b61ad6cec967a302ab85a2ece20b2
+      size: 3477
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: dd3bc2263371ff7d092e85ad5d7c8e41.dir
+      size: 98695
+      nfiles: 22
+    params:
+      params.yaml:
+        evaluate.conf_max: 0.95
+        evaluate.conf_min: 0.01
+        evaluate.conf_step: 0.01
+        evaluate.iou_threshold: 0.1
+    outs:
+    - path: data/07_model_output/dfine-nano/metrics.json
+      hash: md5
+      md5: 8b363a1adb506b56e8e41a47ac697782
+      size: 415
+  evaluate_dfine@dfine-small:
+    cmd: uv run python scripts/evaluate.py --model-name dfine-small 
+      --val-predictions data/02_intermediate/dfine-small/val_predictions.json 
+      --val-dir data/01_raw/datasets/val --test-predictions 
+      data/02_intermediate/dfine-small/test_predictions.json --test-dir 
+      data/01_raw/datasets/test --output-dir data/07_model_output/dfine-small 
+      --iou-threshold 0.1 --conf-min 0.01 --conf-max 0.95 --conf-step 0.01
+    deps:
+    - path: data/01_raw/datasets/test/images
+      hash: md5
+      md5: c1b8a2b8d8cf523ec65e40d9b9c86bb4.dir
+      size: 272435582
+      nfiles: 2640
+    - path: data/01_raw/datasets/test/labels
+      hash: md5
+      md5: 87d112314623efdd79627bed93a8a5e8.dir
+      size: 96354
+      nfiles: 2640
+    - path: data/01_raw/datasets/val/images
+      hash: md5
+      md5: 9ed984ce07931c39df465dd91a68fadd.dir
+      size: 162865902
+      nfiles: 1426
+    - path: data/01_raw/datasets/val/labels
+      hash: md5
+      md5: 01b74380068e5d970435855735eb5bc0.dir
+      size: 84113
+      nfiles: 1426
+    - path: data/02_intermediate/dfine-small/test_predictions.json
+      hash: md5
+      md5: c57ad44b55406a72c8d022d7fc75e078
+      size: 850040
+    - path: data/02_intermediate/dfine-small/val_predictions.json
+      hash: md5
+      md5: c752a6119b8fc8ad7bad3142493ac84d
+      size: 528094
+    - path: scripts/evaluate.py
+      hash: md5
+      md5: ed9b61ad6cec967a302ab85a2ece20b2
+      size: 3477
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: dd3bc2263371ff7d092e85ad5d7c8e41.dir
+      size: 98695
+      nfiles: 22
+    params:
+      params.yaml:
+        evaluate.conf_max: 0.95
+        evaluate.conf_min: 0.01
+        evaluate.conf_step: 0.01
+        evaluate.iou_threshold: 0.1
+    outs:
+    - path: data/07_model_output/dfine-small/metrics.json
+      hash: md5
+      md5: 95e3a7920d16f9733f25d5e8dfcf934a
+      size: 420
+  profile_ultralytics@yolo11s-nimble-narwhal-v6.0.0:
+    cmd: uv run python scripts/profile_model.py --backend ultralytics 
+      --model-name yolo11s-nimble-narwhal-v6.0.0 --model-path 
+      data/01_raw/models/yolo11s-nimble-narwhal-v6.0.0/best.pt --image-size 1024
+      --warmup 10 --iters 50 --output-dir 
+      data/07_model_output/yolo11s-nimble-narwhal-v6.0.0
+    deps:
+    - path: data/01_raw/models/yolo11s-nimble-narwhal-v6.0.0
+      hash: md5
+      md5: 909e195c8e99e88798254027fdec9fe8.dir
+      size: 19225943
+      nfiles: 4
+    - path: scripts/profile_model.py
+      hash: md5
+      md5: 630dd87aa1bc7da3fab988a58d629c98
+      size: 3205
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: dd3bc2263371ff7d092e85ad5d7c8e41.dir
+      size: 98695
+      nfiles: 22
+    params:
+      params.yaml:
+        profile.iters: 50
+        profile.ultralytics_image_size: 1024
+        profile.warmup: 10
+    outs:
+    - path: data/07_model_output/yolo11s-nimble-narwhal-v6.0.0/profile.json
+      hash: md5
+      md5: 6b5632d9a9351e5c82c2fced42295c68
+      size: 243
+  profile_dfine@dfine-nano:
+    cmd: uv run python scripts/profile_model.py --backend dfine --model-name 
+      dfine-nano --model-dir data/06_models/dfine-nano --image-size 1024 
+      --warmup 10 --iters 50 --output-dir data/07_model_output/dfine-nano
+    deps:
+    - path: data/06_models/dfine-nano
+      hash: md5
+      md5: baee1b2dfbf6397523fc1f0abf635935.dir
+      size: 15079483
+      nfiles: 3
+    - path: scripts/profile_model.py
+      hash: md5
+      md5: 630dd87aa1bc7da3fab988a58d629c98
+      size: 3205
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: dd3bc2263371ff7d092e85ad5d7c8e41.dir
+      size: 98695
+      nfiles: 22
+    params:
+      params.yaml:
+        profile.dfine_image_size: 1024
+        profile.iters: 50
+        profile.warmup: 10
+    outs:
+    - path: data/07_model_output/dfine-nano/profile.json
+      hash: md5
+      md5: 708f404388c9273e04da727f2db90e0c
+      size: 215
+  profile_dfine@dfine-small:
+    cmd: uv run python scripts/profile_model.py --backend dfine --model-name 
+      dfine-small --model-dir data/06_models/dfine-small --image-size 1024 
+      --warmup 10 --iters 50 --output-dir data/07_model_output/dfine-small
+    deps:
+    - path: data/06_models/dfine-small
+      hash: md5
+      md5: 0bf6422ed3eeb161de42884338eb9713.dir
+      size: 41095934
+      nfiles: 3
+    - path: scripts/profile_model.py
+      hash: md5
+      md5: 630dd87aa1bc7da3fab988a58d629c98
+      size: 3205
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: dd3bc2263371ff7d092e85ad5d7c8e41.dir
+      size: 98695
+      nfiles: 22
+    params:
+      params.yaml:
+        profile.dfine_image_size: 1024
+        profile.iters: 50
+        profile.warmup: 10
+    outs:
+    - path: data/07_model_output/dfine-small/profile.json
+      hash: md5
+      md5: e36f3b88c02c6bea449574f0a34d9845
+      size: 220
+  infer_test_ultralytics@yolo11s-nimble-narwhal-v6.0.0:
+    cmd: uv run python scripts/infer.py --backend ultralytics --data-dir 
+      data/01_raw/datasets/test --model-path 
+      data/01_raw/models/yolo11s-nimble-narwhal-v6.0.0/best.pt --output-file 
+      data/02_intermediate/yolo11s-nimble-narwhal-v6.0.0/test_predictions.json 
+      --confidence-threshold 0.01 --iou-nms 0.5 --image-size 1024
+    deps:
+    - path: data/01_raw/datasets/test/images
+      hash: md5
+      md5: c1b8a2b8d8cf523ec65e40d9b9c86bb4.dir
+      size: 272435582
+      nfiles: 2640
+    - path: data/01_raw/models/yolo11s-nimble-narwhal-v6.0.0
+      hash: md5
+      md5: 9f54bacab07e9fdf738909d227c2c9fa.dir
+      size: 19225943
+      nfiles: 4
+    - path: scripts/infer.py
+      hash: md5
+      md5: 0af535227f5bb0414937bc2422bc21e6
+      size: 3862
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: 4b21c0d0423d3182279c5327e1c47475.dir
+      size: 87030
+      nfiles: 22
+    params:
+      params.yaml:
+        infer_ultralytics.confidence_threshold: 0.01
+        infer_ultralytics.image_size: 1024
+        infer_ultralytics.iou_nms: 0.5
+    outs:
+    - path: 
+        data/02_intermediate/yolo11s-nimble-narwhal-v6.0.0/test_predictions.json
+      hash: md5
+      md5: c2143880b54a04d7a8a2aa5a7e33ce36
+      size: 1213175
+  infer_val_ultralytics@yolo11s-nimble-narwhal-v6.0.0:
+    cmd: uv run python scripts/infer.py --backend ultralytics --data-dir 
+      data/01_raw/datasets/val --model-path 
+      data/01_raw/models/yolo11s-nimble-narwhal-v6.0.0/best.pt --output-file 
+      data/02_intermediate/yolo11s-nimble-narwhal-v6.0.0/val_predictions.json 
+      --confidence-threshold 0.01 --iou-nms 0.5 --image-size 1024
+    deps:
+    - path: data/01_raw/datasets/val/images
+      hash: md5
+      md5: 9ed984ce07931c39df465dd91a68fadd.dir
+      size: 162865902
+      nfiles: 1426
+    - path: data/01_raw/models/yolo11s-nimble-narwhal-v6.0.0
+      hash: md5
+      md5: 9f54bacab07e9fdf738909d227c2c9fa.dir
+      size: 19225943
+      nfiles: 4
+    - path: scripts/infer.py
+      hash: md5
+      md5: 0af535227f5bb0414937bc2422bc21e6
+      size: 3862
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: 4b21c0d0423d3182279c5327e1c47475.dir
+      size: 87030
+      nfiles: 22
+    params:
+      params.yaml:
+        infer_ultralytics.confidence_threshold: 0.01
+        infer_ultralytics.image_size: 1024
+        infer_ultralytics.iou_nms: 0.5
+    outs:
+    - path: 
+        data/02_intermediate/yolo11s-nimble-narwhal-v6.0.0/val_predictions.json
+      hash: md5
+      md5: b329f27b1bd78f784518e5aa0024ef01
+      size: 908510
+  infer_test_dfine@dfine-nano:
+    cmd: uv run python scripts/infer.py --backend dfine --data-dir 
+      data/01_raw/datasets/test --model-dir data/06_models/dfine-nano 
+      --output-file data/02_intermediate/dfine-nano/test_predictions.json 
+      --confidence-threshold 0.01
+    deps:
+    - path: data/01_raw/datasets/test/images
+      hash: md5
+      md5: c1b8a2b8d8cf523ec65e40d9b9c86bb4.dir
+      size: 272435582
+      nfiles: 2640
+    - path: data/06_models/dfine-nano
+      hash: md5
+      md5: baee1b2dfbf6397523fc1f0abf635935.dir
+      size: 15079483
+      nfiles: 3
+    - path: scripts/infer.py
+      hash: md5
+      md5: 80da748b5c4b38bdb92388904ca5272c
+      size: 3887
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: dd3bc2263371ff7d092e85ad5d7c8e41.dir
+      size: 98695
+      nfiles: 22
+    params:
+      params.yaml:
+        infer_dfine.confidence_threshold: 0.01
+    outs:
+    - path: data/02_intermediate/dfine-nano/test_predictions.json
+      hash: md5
+      md5: a754cfbd442bad71874771170210ae4c
+      size: 615471
+  infer_test_dfine@dfine-small:
+    cmd: uv run python scripts/infer.py --backend dfine --data-dir 
+      data/01_raw/datasets/test --model-dir data/06_models/dfine-small 
+      --output-file data/02_intermediate/dfine-small/test_predictions.json 
+      --confidence-threshold 0.01
+    deps:
+    - path: data/01_raw/datasets/test/images
+      hash: md5
+      md5: c1b8a2b8d8cf523ec65e40d9b9c86bb4.dir
+      size: 272435582
+      nfiles: 2640
+    - path: data/06_models/dfine-small
+      hash: md5
+      md5: 0bf6422ed3eeb161de42884338eb9713.dir
+      size: 41095934
+      nfiles: 3
+    - path: scripts/infer.py
+      hash: md5
+      md5: 80da748b5c4b38bdb92388904ca5272c
+      size: 3887
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: dd3bc2263371ff7d092e85ad5d7c8e41.dir
+      size: 98695
+      nfiles: 22
+    params:
+      params.yaml:
+        infer_dfine.confidence_threshold: 0.01
+    outs:
+    - path: data/02_intermediate/dfine-small/test_predictions.json
+      hash: md5
+      md5: c57ad44b55406a72c8d022d7fc75e078
+      size: 850040
+  infer_val_dfine@dfine-nano:
+    cmd: uv run python scripts/infer.py --backend dfine --data-dir 
+      data/01_raw/datasets/val --model-dir data/06_models/dfine-nano 
+      --output-file data/02_intermediate/dfine-nano/val_predictions.json 
+      --confidence-threshold 0.01
+    deps:
+    - path: data/01_raw/datasets/val/images
+      hash: md5
+      md5: 9ed984ce07931c39df465dd91a68fadd.dir
+      size: 162865902
+      nfiles: 1426
+    - path: data/06_models/dfine-nano
+      hash: md5
+      md5: baee1b2dfbf6397523fc1f0abf635935.dir
+      size: 15079483
+      nfiles: 3
+    - path: scripts/infer.py
+      hash: md5
+      md5: 80da748b5c4b38bdb92388904ca5272c
+      size: 3887
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: dd3bc2263371ff7d092e85ad5d7c8e41.dir
+      size: 98695
+      nfiles: 22
+    params:
+      params.yaml:
+        infer_dfine.confidence_threshold: 0.01
+    outs:
+    - path: data/02_intermediate/dfine-nano/val_predictions.json
+      hash: md5
+      md5: b412d1212e88e06071f7caf67f5233b5
+      size: 377633
+  infer_val_dfine@dfine-small:
+    cmd: uv run python scripts/infer.py --backend dfine --data-dir 
+      data/01_raw/datasets/val --model-dir data/06_models/dfine-small 
+      --output-file data/02_intermediate/dfine-small/val_predictions.json 
+      --confidence-threshold 0.01
+    deps:
+    - path: data/01_raw/datasets/val/images
+      hash: md5
+      md5: 9ed984ce07931c39df465dd91a68fadd.dir
+      size: 162865902
+      nfiles: 1426
+    - path: data/06_models/dfine-small
+      hash: md5
+      md5: 0bf6422ed3eeb161de42884338eb9713.dir
+      size: 41095934
+      nfiles: 3
+    - path: scripts/infer.py
+      hash: md5
+      md5: 80da748b5c4b38bdb92388904ca5272c
+      size: 3887
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: dd3bc2263371ff7d092e85ad5d7c8e41.dir
+      size: 98695
+      nfiles: 22
+    params:
+      params.yaml:
+        infer_dfine.confidence_threshold: 0.01
+    outs:
+    - path: data/02_intermediate/dfine-small/val_predictions.json
+      hash: md5
+      md5: c752a6119b8fc8ad7bad3142493ac84d
+      size: 528094
+  train_yolo@yolo11s-smoke-repro:
+    cmd: uv run python scripts/train_yolo.py --arch yolo11s.pt --train-dir 
+      data/01_raw/datasets/train --val-dir data/01_raw/datasets/val --output-dir
+      data/06_models/yolo11s-smoke-repro --imgsz 1024 --epochs 100 --batch 16 
+      --patience 20 --seed 42
+    deps:
+    - path: data/01_raw/datasets/train/images
+      hash: md5
+      md5: 893798e3318b11f46b2d79c993bfd00f.dir
+      size: 1762074866
+      nfiles: 14767
+    - path: data/01_raw/datasets/train/labels
+      hash: md5
+      md5: b64bf3a4221c2fabebe3e58d52f45df2.dir
+      size: 869735
+      nfiles: 14767
+    - path: data/01_raw/datasets/val/images
+      hash: md5
+      md5: 9ed984ce07931c39df465dd91a68fadd.dir
+      size: 162865902
+      nfiles: 1426
+    - path: data/01_raw/datasets/val/labels
+      hash: md5
+      md5: 01b74380068e5d970435855735eb5bc0.dir
+      size: 84113
+      nfiles: 1426
+    - path: scripts/train_yolo.py
+      hash: md5
+      md5: 6d49407fe272be1191249fe36c1ad761
+      size: 4343
+    params:
+      params.yaml:
+        train_yolo.batch: 16
+        train_yolo.epochs: 100
+        train_yolo.imgsz: 1024
+        train_yolo.patience: 20
+        train_yolo.seed: 42
+    outs:
+    - path: data/06_models/yolo11s-smoke-repro/best.pt
+      hash: md5
+      md5: 86e8aae1f2f3770931211006c0a37aac
+      size: 19230554
+  infer_test_yolo_trained@yolo11s-smoke-repro:
+    cmd: uv run python scripts/infer.py --backend ultralytics --data-dir 
+      data/01_raw/datasets/test --model-path 
+      data/06_models/yolo11s-smoke-repro/best.pt --output-file 
+      data/02_intermediate/yolo11s-smoke-repro/test_predictions.json 
+      --confidence-threshold 0.01 --iou-nms 0.5 --image-size 1024
+    deps:
+    - path: data/01_raw/datasets/test/images
+      hash: md5
+      md5: c1b8a2b8d8cf523ec65e40d9b9c86bb4.dir
+      size: 272435582
+      nfiles: 2640
+    - path: data/06_models/yolo11s-smoke-repro/best.pt
+      hash: md5
+      md5: 86e8aae1f2f3770931211006c0a37aac
+      size: 19230554
+    - path: scripts/infer.py
+      hash: md5
+      md5: 0af535227f5bb0414937bc2422bc21e6
+      size: 3862
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: 4b21c0d0423d3182279c5327e1c47475.dir
+      size: 87030
+      nfiles: 22
+    params:
+      params.yaml:
+        infer_ultralytics.confidence_threshold: 0.01
+        infer_ultralytics.image_size: 1024
+        infer_ultralytics.iou_nms: 0.5
+    outs:
+    - path: data/02_intermediate/yolo11s-smoke-repro/test_predictions.json
+      hash: md5
+      md5: abdac2d7b3bcd1ea69b12b1389d5a376
+      size: 1168441
+  infer_val_yolo_trained@yolo11s-smoke-repro:
+    cmd: uv run python scripts/infer.py --backend ultralytics --data-dir 
+      data/01_raw/datasets/val --model-path 
+      data/06_models/yolo11s-smoke-repro/best.pt --output-file 
+      data/02_intermediate/yolo11s-smoke-repro/val_predictions.json 
+      --confidence-threshold 0.01 --iou-nms 0.5 --image-size 1024
+    deps:
+    - path: data/01_raw/datasets/val/images
+      hash: md5
+      md5: 9ed984ce07931c39df465dd91a68fadd.dir
+      size: 162865902
+      nfiles: 1426
+    - path: data/06_models/yolo11s-smoke-repro/best.pt
+      hash: md5
+      md5: 86e8aae1f2f3770931211006c0a37aac
+      size: 19230554
+    - path: scripts/infer.py
+      hash: md5
+      md5: 0af535227f5bb0414937bc2422bc21e6
+      size: 3862
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: 4b21c0d0423d3182279c5327e1c47475.dir
+      size: 87030
+      nfiles: 22
+    params:
+      params.yaml:
+        infer_ultralytics.confidence_threshold: 0.01
+        infer_ultralytics.image_size: 1024
+        infer_ultralytics.iou_nms: 0.5
+    outs:
+    - path: data/02_intermediate/yolo11s-smoke-repro/val_predictions.json
+      hash: md5
+      md5: b60ff41017f61833fa90798ade08e570
+      size: 795049
+  evaluate_yolo_trained@yolo11s-smoke-repro:
+    cmd: uv run python scripts/evaluate.py --model-name yolo11s-smoke-repro 
+      --val-predictions 
+      data/02_intermediate/yolo11s-smoke-repro/val_predictions.json --val-dir 
+      data/01_raw/datasets/val --test-predictions 
+      data/02_intermediate/yolo11s-smoke-repro/test_predictions.json --test-dir 
+      data/01_raw/datasets/test --output-dir 
+      data/07_model_output/yolo11s-smoke-repro --iou-threshold 0.1 --conf-min 
+      0.01 --conf-max 0.95 --conf-step 0.01
+    deps:
+    - path: data/01_raw/datasets/test/images
+      hash: md5
+      md5: c1b8a2b8d8cf523ec65e40d9b9c86bb4.dir
+      size: 272435582
+      nfiles: 2640
+    - path: data/01_raw/datasets/test/labels
+      hash: md5
+      md5: 87d112314623efdd79627bed93a8a5e8.dir
+      size: 96354
+      nfiles: 2640
+    - path: data/01_raw/datasets/val/images
+      hash: md5
+      md5: 9ed984ce07931c39df465dd91a68fadd.dir
+      size: 162865902
+      nfiles: 1426
+    - path: data/01_raw/datasets/val/labels
+      hash: md5
+      md5: 01b74380068e5d970435855735eb5bc0.dir
+      size: 84113
+      nfiles: 1426
+    - path: data/02_intermediate/yolo11s-smoke-repro/test_predictions.json
+      hash: md5
+      md5: abdac2d7b3bcd1ea69b12b1389d5a376
+      size: 1168441
+    - path: data/02_intermediate/yolo11s-smoke-repro/val_predictions.json
+      hash: md5
+      md5: b60ff41017f61833fa90798ade08e570
+      size: 795049
+    - path: scripts/evaluate.py
+      hash: md5
+      md5: ed9b61ad6cec967a302ab85a2ece20b2
+      size: 3477
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: 4b21c0d0423d3182279c5327e1c47475.dir
+      size: 87030
+      nfiles: 22
+    params:
+      params.yaml:
+        evaluate.conf_max: 0.95
+        evaluate.conf_min: 0.01
+        evaluate.conf_step: 0.01
+        evaluate.iou_threshold: 0.1
+    outs:
+    - path: data/07_model_output/yolo11s-smoke-repro/metrics.json
+      hash: md5
+      md5: b0691d1500c0a34355fdab42ac7f2ed1
+      size: 426
+  profile_yolo_trained@yolo11s-smoke-repro:
+    cmd: uv run python scripts/profile_model.py --backend ultralytics 
+      --model-name yolo11s-smoke-repro --model-path 
+      data/06_models/yolo11s-smoke-repro/best.pt --image-size 1024 --warmup 10 
+      --iters 50 --output-dir data/07_model_output/yolo11s-smoke-repro
+    deps:
+    - path: data/06_models/yolo11s-smoke-repro/best.pt
+      hash: md5
+      md5: 86e8aae1f2f3770931211006c0a37aac
+      size: 19230554
+    - path: scripts/profile_model.py
+      hash: md5
+      md5: 630dd87aa1bc7da3fab988a58d629c98
+      size: 3205
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: dd3bc2263371ff7d092e85ad5d7c8e41.dir
+      size: 98695
+      nfiles: 22
+    params:
+      params.yaml:
+        profile.iters: 50
+        profile.ultralytics_image_size: 1024
+        profile.warmup: 10
+    outs:
+    - path: data/07_model_output/yolo11s-smoke-repro/profile.json
+      hash: md5
+      md5: fd31e999f9c6b8815f7a50b82d0cea4c
+      size: 233
+  train_hf@lwdetr-tiny:
+    cmd: uv run python scripts/train.py --checkpoint 
+      AnnaZhang/lwdetr_tiny_60e_coco --train-dir data/01_raw/datasets/train 
+      --val-dir data/01_raw/datasets/val --output-dir data/06_models/lwdetr-tiny
+      --image-size 1024 --epochs 100 --batch-size 8 --learning-rate 0.0001 
+      --weight-decay 0.0001 --early-stop-patience 20 --seed 42
+    deps:
+    - path: data/01_raw/datasets/train/images
+      hash: md5
+      md5: 893798e3318b11f46b2d79c993bfd00f.dir
+      size: 1762074866
+      nfiles: 14767
+    - path: data/01_raw/datasets/train/labels
+      hash: md5
+      md5: b64bf3a4221c2fabebe3e58d52f45df2.dir
+      size: 869735
+      nfiles: 14767
+    - path: data/01_raw/datasets/val/images
+      hash: md5
+      md5: 9ed984ce07931c39df465dd91a68fadd.dir
+      size: 162865902
+      nfiles: 1426
+    - path: data/01_raw/datasets/val/labels
+      hash: md5
+      md5: 01b74380068e5d970435855735eb5bc0.dir
+      size: 84113
+      nfiles: 1426
+    - path: scripts/train.py
+      hash: md5
+      md5: c3f02900b32b6690d9ade9a83cab35d8
+      size: 2330
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: dd3bc2263371ff7d092e85ad5d7c8e41.dir
+      size: 98695
+      nfiles: 22
+    params:
+      params.yaml:
+        train.batch_size: 8
+        train.early_stop_patience: 20
+        train.epochs: 100
+        train.image_size: 1024
+        train.learning_rate: 0.0001
+        train.seed: 42
+        train.weight_decay: 0.0001
+    outs:
+    - path: data/06_models/lwdetr-tiny
+      hash: md5
+      md5: b0d1d0b3d6417b71459905072900eecb.dir
+      size: 46973698
+      nfiles: 3
+  train_hf@rtdetrv2-r18:
+    cmd: uv run python scripts/train.py --checkpoint PekingU/rtdetr_v2_r18vd 
+      --train-dir data/01_raw/datasets/train --val-dir data/01_raw/datasets/val 
+      --output-dir data/06_models/rtdetrv2-r18 --image-size 1024 --epochs 100 
+      --batch-size 8 --learning-rate 0.0001 --weight-decay 0.0001 
+      --early-stop-patience 20 --seed 42
+    deps:
+    - path: data/01_raw/datasets/train/images
+      hash: md5
+      md5: 893798e3318b11f46b2d79c993bfd00f.dir
+      size: 1762074866
+      nfiles: 14767
+    - path: data/01_raw/datasets/train/labels
+      hash: md5
+      md5: b64bf3a4221c2fabebe3e58d52f45df2.dir
+      size: 869735
+      nfiles: 14767
+    - path: data/01_raw/datasets/val/images
+      hash: md5
+      md5: 9ed984ce07931c39df465dd91a68fadd.dir
+      size: 162865902
+      nfiles: 1426
+    - path: data/01_raw/datasets/val/labels
+      hash: md5
+      md5: 01b74380068e5d970435855735eb5bc0.dir
+      size: 84113
+      nfiles: 1426
+    - path: scripts/train.py
+      hash: md5
+      md5: c3f02900b32b6690d9ade9a83cab35d8
+      size: 2330
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: dd3bc2263371ff7d092e85ad5d7c8e41.dir
+      size: 98695
+      nfiles: 22
+    params:
+      params.yaml:
+        train.batch_size: 8
+        train.early_stop_patience: 20
+        train.epochs: 100
+        train.image_size: 1024
+        train.learning_rate: 0.0001
+        train.seed: 42
+        train.weight_decay: 0.0001
+    outs:
+    - path: data/06_models/rtdetrv2-r18
+      hash: md5
+      md5: a558d10b3045a2949ff813124eaba859.dir
+      size: 80501867
+      nfiles: 3
+  infer_test_hf@lwdetr-tiny:
+    cmd: uv run python scripts/infer.py --backend hf_detr --data-dir 
+      data/01_raw/datasets/test --model-dir data/06_models/lwdetr-tiny 
+      --output-file data/02_intermediate/lwdetr-tiny/test_predictions.json 
+      --confidence-threshold 0.01
+    deps:
+    - path: data/01_raw/datasets/test/images
+      hash: md5
+      md5: c1b8a2b8d8cf523ec65e40d9b9c86bb4.dir
+      size: 272435582
+      nfiles: 2640
+    - path: data/06_models/lwdetr-tiny
+      hash: md5
+      md5: b0d1d0b3d6417b71459905072900eecb.dir
+      size: 46973698
+      nfiles: 3
+    - path: scripts/infer.py
+      hash: md5
+      md5: 80da748b5c4b38bdb92388904ca5272c
+      size: 3887
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: dd3bc2263371ff7d092e85ad5d7c8e41.dir
+      size: 98695
+      nfiles: 22
+    params:
+      params.yaml:
+        infer_dfine.confidence_threshold: 0.01
+    outs:
+    - path: data/02_intermediate/lwdetr-tiny/test_predictions.json
+      hash: md5
+      md5: d2b75e0aa8dfa8969323077f114b537c
+      size: 18704290
+  infer_test_hf@rtdetrv2-r18:
+    cmd: uv run python scripts/infer.py --backend hf_detr --data-dir 
+      data/01_raw/datasets/test --model-dir data/06_models/rtdetrv2-r18 
+      --output-file data/02_intermediate/rtdetrv2-r18/test_predictions.json 
+      --confidence-threshold 0.01
+    deps:
+    - path: data/01_raw/datasets/test/images
+      hash: md5
+      md5: c1b8a2b8d8cf523ec65e40d9b9c86bb4.dir
+      size: 272435582
+      nfiles: 2640
+    - path: data/06_models/rtdetrv2-r18
+      hash: md5
+      md5: a558d10b3045a2949ff813124eaba859.dir
+      size: 80501867
+      nfiles: 3
+    - path: scripts/infer.py
+      hash: md5
+      md5: 80da748b5c4b38bdb92388904ca5272c
+      size: 3887
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: dd3bc2263371ff7d092e85ad5d7c8e41.dir
+      size: 98695
+      nfiles: 22
+    params:
+      params.yaml:
+        infer_dfine.confidence_threshold: 0.01
+    outs:
+    - path: data/02_intermediate/rtdetrv2-r18/test_predictions.json
+      hash: md5
+      md5: aea426462d7631fe77ef7e7c4d93cc86
+      size: 723781
+  infer_val_hf@lwdetr-tiny:
+    cmd: uv run python scripts/infer.py --backend hf_detr --data-dir 
+      data/01_raw/datasets/val --model-dir data/06_models/lwdetr-tiny 
+      --output-file data/02_intermediate/lwdetr-tiny/val_predictions.json 
+      --confidence-threshold 0.01
+    deps:
+    - path: data/01_raw/datasets/val/images
+      hash: md5
+      md5: 9ed984ce07931c39df465dd91a68fadd.dir
+      size: 162865902
+      nfiles: 1426
+    - path: data/06_models/lwdetr-tiny
+      hash: md5
+      md5: b0d1d0b3d6417b71459905072900eecb.dir
+      size: 46973698
+      nfiles: 3
+    - path: scripts/infer.py
+      hash: md5
+      md5: 80da748b5c4b38bdb92388904ca5272c
+      size: 3887
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: dd3bc2263371ff7d092e85ad5d7c8e41.dir
+      size: 98695
+      nfiles: 22
+    params:
+      params.yaml:
+        infer_dfine.confidence_threshold: 0.01
+    outs:
+    - path: data/02_intermediate/lwdetr-tiny/val_predictions.json
+      hash: md5
+      md5: d608721bf63d2e612ec8f154da338621
+      size: 10375655
+  infer_val_hf@rtdetrv2-r18:
+    cmd: uv run python scripts/infer.py --backend hf_detr --data-dir 
+      data/01_raw/datasets/val --model-dir data/06_models/rtdetrv2-r18 
+      --output-file data/02_intermediate/rtdetrv2-r18/val_predictions.json 
+      --confidence-threshold 0.01
+    deps:
+    - path: data/01_raw/datasets/val/images
+      hash: md5
+      md5: 9ed984ce07931c39df465dd91a68fadd.dir
+      size: 162865902
+      nfiles: 1426
+    - path: data/06_models/rtdetrv2-r18
+      hash: md5
+      md5: a558d10b3045a2949ff813124eaba859.dir
+      size: 80501867
+      nfiles: 3
+    - path: scripts/infer.py
+      hash: md5
+      md5: 80da748b5c4b38bdb92388904ca5272c
+      size: 3887
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: dd3bc2263371ff7d092e85ad5d7c8e41.dir
+      size: 98695
+      nfiles: 22
+    params:
+      params.yaml:
+        infer_dfine.confidence_threshold: 0.01
+    outs:
+    - path: data/02_intermediate/rtdetrv2-r18/val_predictions.json
+      hash: md5
+      md5: ae01c2ddccd96467e587df3b397be966
+      size: 515150
+  evaluate_hf@lwdetr-tiny:
+    cmd: uv run python scripts/evaluate.py --model-name lwdetr-tiny 
+      --val-predictions data/02_intermediate/lwdetr-tiny/val_predictions.json 
+      --val-dir data/01_raw/datasets/val --test-predictions 
+      data/02_intermediate/lwdetr-tiny/test_predictions.json --test-dir 
+      data/01_raw/datasets/test --output-dir data/07_model_output/lwdetr-tiny 
+      --iou-threshold 0.1 --conf-min 0.01 --conf-max 0.95 --conf-step 0.01
+    deps:
+    - path: data/01_raw/datasets/test/images
+      hash: md5
+      md5: c1b8a2b8d8cf523ec65e40d9b9c86bb4.dir
+      size: 272435582
+      nfiles: 2640
+    - path: data/01_raw/datasets/test/labels
+      hash: md5
+      md5: 87d112314623efdd79627bed93a8a5e8.dir
+      size: 96354
+      nfiles: 2640
+    - path: data/01_raw/datasets/val/images
+      hash: md5
+      md5: 9ed984ce07931c39df465dd91a68fadd.dir
+      size: 162865902
+      nfiles: 1426
+    - path: data/01_raw/datasets/val/labels
+      hash: md5
+      md5: 01b74380068e5d970435855735eb5bc0.dir
+      size: 84113
+      nfiles: 1426
+    - path: data/02_intermediate/lwdetr-tiny/test_predictions.json
+      hash: md5
+      md5: d2b75e0aa8dfa8969323077f114b537c
+      size: 18704290
+    - path: data/02_intermediate/lwdetr-tiny/val_predictions.json
+      hash: md5
+      md5: d608721bf63d2e612ec8f154da338621
+      size: 10375655
+    - path: scripts/evaluate.py
+      hash: md5
+      md5: ed9b61ad6cec967a302ab85a2ece20b2
+      size: 3477
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: dd3bc2263371ff7d092e85ad5d7c8e41.dir
+      size: 98695
+      nfiles: 22
+    params:
+      params.yaml:
+        evaluate.conf_max: 0.95
+        evaluate.conf_min: 0.01
+        evaluate.conf_step: 0.01
+        evaluate.iou_threshold: 0.1
+    outs:
+    - path: data/07_model_output/lwdetr-tiny/metrics.json
+      hash: md5
+      md5: 398a5e81e0bbd7f4bddfdcce9d9a531f
+      size: 417
+  evaluate_hf@rtdetrv2-r18:
+    cmd: uv run python scripts/evaluate.py --model-name rtdetrv2-r18 
+      --val-predictions data/02_intermediate/rtdetrv2-r18/val_predictions.json 
+      --val-dir data/01_raw/datasets/val --test-predictions 
+      data/02_intermediate/rtdetrv2-r18/test_predictions.json --test-dir 
+      data/01_raw/datasets/test --output-dir data/07_model_output/rtdetrv2-r18 
+      --iou-threshold 0.1 --conf-min 0.01 --conf-max 0.95 --conf-step 0.01
+    deps:
+    - path: data/01_raw/datasets/test/images
+      hash: md5
+      md5: c1b8a2b8d8cf523ec65e40d9b9c86bb4.dir
+      size: 272435582
+      nfiles: 2640
+    - path: data/01_raw/datasets/test/labels
+      hash: md5
+      md5: 87d112314623efdd79627bed93a8a5e8.dir
+      size: 96354
+      nfiles: 2640
+    - path: data/01_raw/datasets/val/images
+      hash: md5
+      md5: 9ed984ce07931c39df465dd91a68fadd.dir
+      size: 162865902
+      nfiles: 1426
+    - path: data/01_raw/datasets/val/labels
+      hash: md5
+      md5: 01b74380068e5d970435855735eb5bc0.dir
+      size: 84113
+      nfiles: 1426
+    - path: data/02_intermediate/rtdetrv2-r18/test_predictions.json
+      hash: md5
+      md5: aea426462d7631fe77ef7e7c4d93cc86
+      size: 723781
+    - path: data/02_intermediate/rtdetrv2-r18/val_predictions.json
+      hash: md5
+      md5: ae01c2ddccd96467e587df3b397be966
+      size: 515150
+    - path: scripts/evaluate.py
+      hash: md5
+      md5: ed9b61ad6cec967a302ab85a2ece20b2
+      size: 3477
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: dd3bc2263371ff7d092e85ad5d7c8e41.dir
+      size: 98695
+      nfiles: 22
+    params:
+      params.yaml:
+        evaluate.conf_max: 0.95
+        evaluate.conf_min: 0.01
+        evaluate.conf_step: 0.01
+        evaluate.iou_threshold: 0.1
+    outs:
+    - path: data/07_model_output/rtdetrv2-r18/metrics.json
+      hash: md5
+      md5: b81b16ecdd64fb92eb92a4364354e111
+      size: 418
+  profile_hf@lwdetr-tiny:
+    cmd: uv run python scripts/profile_model.py --backend hf_detr --model-name 
+      lwdetr-tiny --model-dir data/06_models/lwdetr-tiny --image-size 1024 
+      --warmup 10 --iters 50 --output-dir data/07_model_output/lwdetr-tiny
+    deps:
+    - path: data/06_models/lwdetr-tiny
+      hash: md5
+      md5: b0d1d0b3d6417b71459905072900eecb.dir
+      size: 46973698
+      nfiles: 3
+    - path: scripts/profile_model.py
+      hash: md5
+      md5: 630dd87aa1bc7da3fab988a58d629c98
+      size: 3205
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: dd3bc2263371ff7d092e85ad5d7c8e41.dir
+      size: 98695
+      nfiles: 22
+    params:
+      params.yaml:
+        profile.dfine_image_size: 1024
+        profile.iters: 50
+        profile.warmup: 10
+    outs:
+    - path: data/07_model_output/lwdetr-tiny/profile.json
+      hash: md5
+      md5: 0c70e96c0805b049c6b6a4bbc12082d9
+      size: 221
+  profile_hf@rtdetrv2-r18:
+    cmd: uv run python scripts/profile_model.py --backend hf_detr --model-name 
+      rtdetrv2-r18 --model-dir data/06_models/rtdetrv2-r18 --image-size 1024 
+      --warmup 10 --iters 50 --output-dir data/07_model_output/rtdetrv2-r18
+    deps:
+    - path: data/06_models/rtdetrv2-r18
+      hash: md5
+      md5: a558d10b3045a2949ff813124eaba859.dir
+      size: 80501867
+      nfiles: 3
+    - path: scripts/profile_model.py
+      hash: md5
+      md5: 630dd87aa1bc7da3fab988a58d629c98
+      size: 3205
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: dd3bc2263371ff7d092e85ad5d7c8e41.dir
+      size: 98695
+      nfiles: 22
+    params:
+      params.yaml:
+        profile.dfine_image_size: 1024
+        profile.iters: 50
+        profile.warmup: 10
+    outs:
+    - path: data/07_model_output/rtdetrv2-r18/profile.json
+      hash: md5
+      md5: 608d2d5b21a59c709e8df4e6e0af41cf
+      size: 221
+  train_yolo@yolo26s-smoke:
+    cmd: uv run python scripts/train_yolo.py --arch yolo26s.pt --train-dir 
+      data/01_raw/datasets/train --val-dir data/01_raw/datasets/val --output-dir
+      data/06_models/yolo26s-smoke --imgsz 1024 --epochs 100 --batch 16 
+      --patience 20 --seed 42 --workers 2
+    deps:
+    - path: data/01_raw/datasets/train/images
+      hash: md5
+      md5: 893798e3318b11f46b2d79c993bfd00f.dir
+      size: 1762074866
+      nfiles: 14767
+    - path: data/01_raw/datasets/train/labels
+      hash: md5
+      md5: b64bf3a4221c2fabebe3e58d52f45df2.dir
+      size: 869735
+      nfiles: 14767
+    - path: data/01_raw/datasets/val/images
+      hash: md5
+      md5: 9ed984ce07931c39df465dd91a68fadd.dir
+      size: 162865902
+      nfiles: 1426
+    - path: data/01_raw/datasets/val/labels
+      hash: md5
+      md5: 01b74380068e5d970435855735eb5bc0.dir
+      size: 84113
+      nfiles: 1426
+    - path: scripts/train_yolo.py
+      hash: md5
+      md5: c3d3ce159f815ff9c7131db2604ecd7d
+      size: 4678
+    params:
+      params.yaml:
+        train_yolo.batch: 16
+        train_yolo.epochs: 100
+        train_yolo.imgsz: 1024
+        train_yolo.patience: 20
+        train_yolo.seed: 42
+    outs:
+    - path: data/06_models/yolo26s-smoke/best.pt
+      hash: md5
+      md5: 57acce307b8d7f30be96e396fac84941
+      size: 20365445
+  infer_test_yolo_trained@yolo26s-smoke:
+    cmd: uv run python scripts/infer.py --backend ultralytics --data-dir 
+      data/01_raw/datasets/test --model-path 
+      data/06_models/yolo26s-smoke/best.pt --output-file 
+      data/02_intermediate/yolo26s-smoke/test_predictions.json 
+      --confidence-threshold 0.01 --iou-nms 0.5 --image-size 1024
+    deps:
+    - path: data/01_raw/datasets/test/images
+      hash: md5
+      md5: c1b8a2b8d8cf523ec65e40d9b9c86bb4.dir
+      size: 272435582
+      nfiles: 2640
+    - path: data/06_models/yolo26s-smoke/best.pt
+      hash: md5
+      md5: 57acce307b8d7f30be96e396fac84941
+      size: 20365445
+    - path: scripts/infer.py
+      hash: md5
+      md5: 80da748b5c4b38bdb92388904ca5272c
+      size: 3887
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: dd3bc2263371ff7d092e85ad5d7c8e41.dir
+      size: 98695
+      nfiles: 22
+    params:
+      params.yaml:
+        infer_ultralytics.confidence_threshold: 0.01
+        infer_ultralytics.image_size: 1024
+        infer_ultralytics.iou_nms: 0.5
+    outs:
+    - path: data/02_intermediate/yolo26s-smoke/test_predictions.json
+      hash: md5
+      md5: 4ad48e67ec338442328cf1c121698c42
+      size: 1496391
+  infer_val_yolo_trained@yolo26s-smoke:
+    cmd: uv run python scripts/infer.py --backend ultralytics --data-dir 
+      data/01_raw/datasets/val --model-path data/06_models/yolo26s-smoke/best.pt
+      --output-file data/02_intermediate/yolo26s-smoke/val_predictions.json 
+      --confidence-threshold 0.01 --iou-nms 0.5 --image-size 1024
+    deps:
+    - path: data/01_raw/datasets/val/images
+      hash: md5
+      md5: 9ed984ce07931c39df465dd91a68fadd.dir
+      size: 162865902
+      nfiles: 1426
+    - path: data/06_models/yolo26s-smoke/best.pt
+      hash: md5
+      md5: 57acce307b8d7f30be96e396fac84941
+      size: 20365445
+    - path: scripts/infer.py
+      hash: md5
+      md5: 80da748b5c4b38bdb92388904ca5272c
+      size: 3887
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: dd3bc2263371ff7d092e85ad5d7c8e41.dir
+      size: 98695
+      nfiles: 22
+    params:
+      params.yaml:
+        infer_ultralytics.confidence_threshold: 0.01
+        infer_ultralytics.image_size: 1024
+        infer_ultralytics.iou_nms: 0.5
+    outs:
+    - path: data/02_intermediate/yolo26s-smoke/val_predictions.json
+      hash: md5
+      md5: c980021d63771ca58a6218f9a96b7321
+      size: 1231177
+  evaluate_yolo_trained@yolo26s-smoke:
+    cmd: uv run python scripts/evaluate.py --model-name yolo26s-smoke 
+      --val-predictions data/02_intermediate/yolo26s-smoke/val_predictions.json 
+      --val-dir data/01_raw/datasets/val --test-predictions 
+      data/02_intermediate/yolo26s-smoke/test_predictions.json --test-dir 
+      data/01_raw/datasets/test --output-dir data/07_model_output/yolo26s-smoke 
+      --iou-threshold 0.1 --conf-min 0.01 --conf-max 0.95 --conf-step 0.01
+    deps:
+    - path: data/01_raw/datasets/test/images
+      hash: md5
+      md5: c1b8a2b8d8cf523ec65e40d9b9c86bb4.dir
+      size: 272435582
+      nfiles: 2640
+    - path: data/01_raw/datasets/test/labels
+      hash: md5
+      md5: 87d112314623efdd79627bed93a8a5e8.dir
+      size: 96354
+      nfiles: 2640
+    - path: data/01_raw/datasets/val/images
+      hash: md5
+      md5: 9ed984ce07931c39df465dd91a68fadd.dir
+      size: 162865902
+      nfiles: 1426
+    - path: data/01_raw/datasets/val/labels
+      hash: md5
+      md5: 01b74380068e5d970435855735eb5bc0.dir
+      size: 84113
+      nfiles: 1426
+    - path: data/02_intermediate/yolo26s-smoke/test_predictions.json
+      hash: md5
+      md5: 4ad48e67ec338442328cf1c121698c42
+      size: 1496391
+    - path: data/02_intermediate/yolo26s-smoke/val_predictions.json
+      hash: md5
+      md5: c980021d63771ca58a6218f9a96b7321
+      size: 1231177
+    - path: scripts/evaluate.py
+      hash: md5
+      md5: ed9b61ad6cec967a302ab85a2ece20b2
+      size: 3477
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: dd3bc2263371ff7d092e85ad5d7c8e41.dir
+      size: 98695
+      nfiles: 22
+    params:
+      params.yaml:
+        evaluate.conf_max: 0.95
+        evaluate.conf_min: 0.01
+        evaluate.conf_step: 0.01
+        evaluate.iou_threshold: 0.1
+    outs:
+    - path: data/07_model_output/yolo26s-smoke/metrics.json
+      hash: md5
+      md5: 7f5292bf549e89f362f0473ff4d8080b
+      size: 419
+  profile_yolo_trained@yolo26s-smoke:
+    cmd: uv run python scripts/profile_model.py --backend ultralytics 
+      --model-name yolo26s-smoke --model-path 
+      data/06_models/yolo26s-smoke/best.pt --image-size 1024 --warmup 10 --iters
+      50 --output-dir data/07_model_output/yolo26s-smoke
+    deps:
+    - path: data/06_models/yolo26s-smoke/best.pt
+      hash: md5
+      md5: 57acce307b8d7f30be96e396fac84941
+      size: 20365445
+    - path: scripts/profile_model.py
+      hash: md5
+      md5: 630dd87aa1bc7da3fab988a58d629c98
+      size: 3205
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: dd3bc2263371ff7d092e85ad5d7c8e41.dir
+      size: 98695
+      nfiles: 22
+    params:
+      params.yaml:
+        profile.iters: 50
+        profile.ultralytics_image_size: 1024
+        profile.warmup: 10
+    outs:
+    - path: data/07_model_output/yolo26s-smoke/profile.json
+      hash: md5
+      md5: eeab94c5a25b9789bb4f9c22dd4b9a73
+      size: 228
+  train_yolo@yolo26n-smoke:
+    cmd: uv run python scripts/train_yolo.py --arch yolo26n.pt --train-dir 
+      data/01_raw/datasets/train --val-dir data/01_raw/datasets/val --output-dir
+      data/06_models/yolo26n-smoke --imgsz 1024 --epochs 100 --batch 16 
+      --patience 20 --seed 42 --workers 2
+    deps:
+    - path: data/01_raw/datasets/train/images
+      hash: md5
+      md5: 893798e3318b11f46b2d79c993bfd00f.dir
+      size: 1762074866
+      nfiles: 14767
+    - path: data/01_raw/datasets/train/labels
+      hash: md5
+      md5: b64bf3a4221c2fabebe3e58d52f45df2.dir
+      size: 869735
+      nfiles: 14767
+    - path: data/01_raw/datasets/val/images
+      hash: md5
+      md5: 9ed984ce07931c39df465dd91a68fadd.dir
+      size: 162865902
+      nfiles: 1426
+    - path: data/01_raw/datasets/val/labels
+      hash: md5
+      md5: 01b74380068e5d970435855735eb5bc0.dir
+      size: 84113
+      nfiles: 1426
+    - path: scripts/train_yolo.py
+      hash: md5
+      md5: c3d3ce159f815ff9c7131db2604ecd7d
+      size: 4678
+    params:
+      params.yaml:
+        train_yolo.batch: 16
+        train_yolo.epochs: 100
+        train_yolo.imgsz: 1024
+        train_yolo.patience: 20
+        train_yolo.seed: 42
+    outs:
+    - path: data/06_models/yolo26n-smoke/best.pt
+      hash: md5
+      md5: 79447f481e23e6c5c9642d321b8ef8bb
+      size: 5439941
+  infer_test_yolo_trained@yolo26n-smoke:
+    cmd: uv run python scripts/infer.py --backend ultralytics --data-dir 
+      data/01_raw/datasets/test --model-path 
+      data/06_models/yolo26n-smoke/best.pt --output-file 
+      data/02_intermediate/yolo26n-smoke/test_predictions.json 
+      --confidence-threshold 0.01 --iou-nms 0.5 --image-size 1024
+    deps:
+    - path: data/01_raw/datasets/test/images
+      hash: md5
+      md5: c1b8a2b8d8cf523ec65e40d9b9c86bb4.dir
+      size: 272435582
+      nfiles: 2640
+    - path: data/06_models/yolo26n-smoke/best.pt
+      hash: md5
+      md5: 79447f481e23e6c5c9642d321b8ef8bb
+      size: 5439941
+    - path: scripts/infer.py
+      hash: md5
+      md5: 80da748b5c4b38bdb92388904ca5272c
+      size: 3887
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: dd3bc2263371ff7d092e85ad5d7c8e41.dir
+      size: 98695
+      nfiles: 22
+    params:
+      params.yaml:
+        infer_ultralytics.confidence_threshold: 0.01
+        infer_ultralytics.image_size: 1024
+        infer_ultralytics.iou_nms: 0.5
+    outs:
+    - path: data/02_intermediate/yolo26n-smoke/test_predictions.json
+      hash: md5
+      md5: f8527e1cab35df9b5b54ea54d574d9c4
+      size: 1835882
+  infer_val_yolo_trained@yolo26n-smoke:
+    cmd: uv run python scripts/infer.py --backend ultralytics --data-dir 
+      data/01_raw/datasets/val --model-path data/06_models/yolo26n-smoke/best.pt
+      --output-file data/02_intermediate/yolo26n-smoke/val_predictions.json 
+      --confidence-threshold 0.01 --iou-nms 0.5 --image-size 1024
+    deps:
+    - path: data/01_raw/datasets/val/images
+      hash: md5
+      md5: 9ed984ce07931c39df465dd91a68fadd.dir
+      size: 162865902
+      nfiles: 1426
+    - path: data/06_models/yolo26n-smoke/best.pt
+      hash: md5
+      md5: 79447f481e23e6c5c9642d321b8ef8bb
+      size: 5439941
+    - path: scripts/infer.py
+      hash: md5
+      md5: 80da748b5c4b38bdb92388904ca5272c
+      size: 3887
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: dd3bc2263371ff7d092e85ad5d7c8e41.dir
+      size: 98695
+      nfiles: 22
+    params:
+      params.yaml:
+        infer_ultralytics.confidence_threshold: 0.01
+        infer_ultralytics.image_size: 1024
+        infer_ultralytics.iou_nms: 0.5
+    outs:
+    - path: data/02_intermediate/yolo26n-smoke/val_predictions.json
+      hash: md5
+      md5: c362af158ff07be2b1a7f7f33a9f581b
+      size: 1458483
+  evaluate_yolo_trained@yolo26n-smoke:
+    cmd: uv run python scripts/evaluate.py --model-name yolo26n-smoke 
+      --val-predictions data/02_intermediate/yolo26n-smoke/val_predictions.json 
+      --val-dir data/01_raw/datasets/val --test-predictions 
+      data/02_intermediate/yolo26n-smoke/test_predictions.json --test-dir 
+      data/01_raw/datasets/test --output-dir data/07_model_output/yolo26n-smoke 
+      --iou-threshold 0.1 --conf-min 0.01 --conf-max 0.95 --conf-step 0.01
+    deps:
+    - path: data/01_raw/datasets/test/images
+      hash: md5
+      md5: c1b8a2b8d8cf523ec65e40d9b9c86bb4.dir
+      size: 272435582
+      nfiles: 2640
+    - path: data/01_raw/datasets/test/labels
+      hash: md5
+      md5: 87d112314623efdd79627bed93a8a5e8.dir
+      size: 96354
+      nfiles: 2640
+    - path: data/01_raw/datasets/val/images
+      hash: md5
+      md5: 9ed984ce07931c39df465dd91a68fadd.dir
+      size: 162865902
+      nfiles: 1426
+    - path: data/01_raw/datasets/val/labels
+      hash: md5
+      md5: 01b74380068e5d970435855735eb5bc0.dir
+      size: 84113
+      nfiles: 1426
+    - path: data/02_intermediate/yolo26n-smoke/test_predictions.json
+      hash: md5
+      md5: f8527e1cab35df9b5b54ea54d574d9c4
+      size: 1835882
+    - path: data/02_intermediate/yolo26n-smoke/val_predictions.json
+      hash: md5
+      md5: c362af158ff07be2b1a7f7f33a9f581b
+      size: 1458483
+    - path: scripts/evaluate.py
+      hash: md5
+      md5: ed9b61ad6cec967a302ab85a2ece20b2
+      size: 3477
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: dd3bc2263371ff7d092e85ad5d7c8e41.dir
+      size: 98695
+      nfiles: 22
+    params:
+      params.yaml:
+        evaluate.conf_max: 0.95
+        evaluate.conf_min: 0.01
+        evaluate.conf_step: 0.01
+        evaluate.iou_threshold: 0.1
+    outs:
+    - path: data/07_model_output/yolo26n-smoke/metrics.json
+      hash: md5
+      md5: 7dff58f24603b8d868185307a3ac05ff
+      size: 419
+  profile_yolo_trained@yolo26n-smoke:
+    cmd: uv run python scripts/profile_model.py --backend ultralytics 
+      --model-name yolo26n-smoke --model-path 
+      data/06_models/yolo26n-smoke/best.pt --image-size 1024 --warmup 10 --iters
+      50 --output-dir data/07_model_output/yolo26n-smoke
+    deps:
+    - path: data/06_models/yolo26n-smoke/best.pt
+      hash: md5
+      md5: 79447f481e23e6c5c9642d321b8ef8bb
+      size: 5439941
+    - path: scripts/profile_model.py
+      hash: md5
+      md5: 630dd87aa1bc7da3fab988a58d629c98
+      size: 3205
+    - path: src/detector_leaderboard
+      hash: md5
+      md5: dd3bc2263371ff7d092e85ad5d7c8e41.dir
+      size: 98695
+      nfiles: 22
+    params:
+      params.yaml:
+        profile.iters: 50
+        profile.ultralytics_image_size: 1024
+        profile.warmup: 10
+    outs:
+    - path: data/07_model_output/yolo26n-smoke/profile.json
+      hash: md5
+      md5: 7507174524cc5b7cd83407f05cd8b011
+      size: 227

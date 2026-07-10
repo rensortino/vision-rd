@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.venv/
+.ipynb_checkpoints/
+.rfdetr-venv/
+
+# DEIMv2 (external repo + isolated venv, not tracked)
+deimv2_repo/
+.deimv2-venv/
+
+# wandb local run data
+wandb/
+
+# stray weight downloads (ultralytics pretrained inits)
+*.pt
