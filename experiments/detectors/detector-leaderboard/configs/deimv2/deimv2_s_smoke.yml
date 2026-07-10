@@ -1,0 +1,21 @@
+__include__: ['./deimv2_dinov3_s_coco.yml']
+
+# Single-class smoke finetune on the wildfire dataset (reuses the rfdetr_coco
+# COCO conversion: one category "smoke" with category_id=1, so num_classes=2
+# with remap disabled -> label index 1 = smoke, index 0 unused).
+output_dir: ./outputs/deimv2_s_smoke
+
+num_classes: 2
+remap_mscoco_category: False
+
+train_dataloader:
+  total_batch_size: 16
+  dataset:
+    img_folder: /home/rsortino/projects/other/vision-rd/.claude/worktrees/detector/experiments/detectors/detector-leaderboard/data/05_model_input/rfdetr_coco/train
+    ann_file: /home/rsortino/projects/other/vision-rd/.claude/worktrees/detector/experiments/detectors/detector-leaderboard/data/05_model_input/rfdetr_coco/train/_annotations.coco.json
+
+val_dataloader:
+  total_batch_size: 16
+  dataset:
+    img_folder: /home/rsortino/projects/other/vision-rd/.claude/worktrees/detector/experiments/detectors/detector-leaderboard/data/05_model_input/rfdetr_coco/valid
+    ann_file: /home/rsortino/projects/other/vision-rd/.claude/worktrees/detector/experiments/detectors/detector-leaderboard/data/05_model_input/rfdetr_coco/valid/_annotations.coco.json

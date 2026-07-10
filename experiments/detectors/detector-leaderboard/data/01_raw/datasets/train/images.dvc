@@ -1,0 +1,14 @@
+md5: 6ff63dd481a51abf770dc95e61681fd7
+frozen: true
+deps:
+- path: data/processed/yolo_train_val/images/train
+  repo:
+    url: https://github.com/pyronear/pyro-dataset
+    rev: v4.0.0-corrected
+    rev_lock: 76eb464c88bd7f612936d84adf9c84e8ab42d601
+outs:
+- md5: 893798e3318b11f46b2d79c993bfd00f.dir
+  size: 1762074866
+  nfiles: 14767
+  hash: md5
+  path: images

@@ -1,0 +1,514 @@
+stages:
+  # --- ultralytics detectors: download pretrained weights -----------------
+  prepare:
+    foreach: ${ultralytics_detectors}
+    do:
+      cmd: >-
+        uv run python scripts/prepare.py
+        --model-repo ${item.model_repo}
+        --model-filename ${item.model_filename}
+        --output-model-dir data/01_raw/models/${key}
+      deps:
+        - scripts/prepare.py
+      outs:
+        - data/01_raw/models/${key}
+
+  # --- D-FINE detectors: finetune on the smoke training split -------------
+  train:
+    foreach: ${dfine_detectors}
+    do:
+      cmd: >-
+        uv run python scripts/train.py
+        --checkpoint ${item.checkpoint}
+        --train-dir data/01_raw/datasets/train
+        --val-dir data/01_raw/datasets/val
+        --output-dir data/06_models/${key}
+        --image-size ${train.image_size}
+        --epochs ${train.epochs}
+        --batch-size ${train.batch_size}
+        --learning-rate ${train.learning_rate}
+        --weight-decay ${train.weight_decay}
+        --early-stop-patience ${train.early_stop_patience}
+        --seed ${train.seed}
+      deps:
+        - scripts/train.py
+        - src/detector_leaderboard
+        - data/01_raw/datasets/train/images
+        - data/01_raw/datasets/train/labels
+        - data/01_raw/datasets/val/images
+        - data/01_raw/datasets/val/labels
+      params:
+        - train.image_size
+        - train.epochs
+        - train.batch_size
+        - train.learning_rate
+        - train.weight_decay
+        - train.early_stop_patience
+        - train.seed
+      outs:
+        - data/06_models/${key}
+
+  # --- inference on test + val (cache all boxes at low confidence) --------
+  infer_test_ultralytics:
+    foreach: ${ultralytics_detectors}
+    do:
+      cmd: >-
+        uv run python scripts/infer.py --backend ultralytics
+        --data-dir data/01_raw/datasets/test
+        --model-path data/01_raw/models/${key}/${item.model_filename}
+        --output-file data/02_intermediate/${key}/test_predictions.json
+        --confidence-threshold ${infer_ultralytics.confidence_threshold}
+        --iou-nms ${infer_ultralytics.iou_nms}
+        --image-size ${infer_ultralytics.image_size}
+      deps:
+        - scripts/infer.py
+        - src/detector_leaderboard
+        - data/01_raw/models/${key}
+        - data/01_raw/datasets/test/images
+      params:
+        - infer_ultralytics.confidence_threshold
+        - infer_ultralytics.iou_nms
+        - infer_ultralytics.image_size
+      outs:
+        - data/02_intermediate/${key}/test_predictions.json
+
+  infer_val_ultralytics:
+    foreach: ${ultralytics_detectors}
+    do:
+      cmd: >-
+        uv run python scripts/infer.py --backend ultralytics
+        --data-dir data/01_raw/datasets/val
+        --model-path data/01_raw/models/${key}/${item.model_filename}
+        --output-file data/02_intermediate/${key}/val_predictions.json
+        --confidence-threshold ${infer_ultralytics.confidence_threshold}
+        --iou-nms ${infer_ultralytics.iou_nms}
+        --image-size ${infer_ultralytics.image_size}
+      deps:
+        - scripts/infer.py
+        - src/detector_leaderboard
+        - data/01_raw/models/${key}
+        - data/01_raw/datasets/val/images
+      params:
+        - infer_ultralytics.confidence_threshold
+        - infer_ultralytics.iou_nms
+        - infer_ultralytics.image_size
+      outs:
+        - data/02_intermediate/${key}/val_predictions.json
+
+  infer_test_dfine:
+    foreach: ${dfine_detectors}
+    do:
+      cmd: >-
+        uv run python scripts/infer.py --backend dfine
+        --data-dir data/01_raw/datasets/test
+        --model-dir data/06_models/${key}
+        --output-file data/02_intermediate/${key}/test_predictions.json
+        --confidence-threshold ${infer_dfine.confidence_threshold}
+      deps:
+        - scripts/infer.py
+        - src/detector_leaderboard
+        - data/06_models/${key}
+        - data/01_raw/datasets/test/images
+      params:
+        - infer_dfine.confidence_threshold
+      outs:
+        - data/02_intermediate/${key}/test_predictions.json
+
+  infer_val_dfine:
+    foreach: ${dfine_detectors}
+    do:
+      cmd: >-
+        uv run python scripts/infer.py --backend dfine
+        --data-dir data/01_raw/datasets/val
+        --model-dir data/06_models/${key}
+        --output-file data/02_intermediate/${key}/val_predictions.json
+        --confidence-threshold ${infer_dfine.confidence_threshold}
+      deps:
+        - scripts/infer.py
+        - src/detector_leaderboard
+        - data/06_models/${key}
+        - data/01_raw/datasets/val/images
+      params:
+        - infer_dfine.confidence_threshold
+      outs:
+        - data/02_intermediate/${key}/val_predictions.json
+
+  # --- evaluation: select conf on val, score on test (backend-agnostic) ---
+  evaluate_ultralytics:
+    foreach: ${ultralytics_detectors}
+    do:
+      cmd: >-
+        uv run python scripts/evaluate.py
+        --model-name ${key}
+        --val-predictions data/02_intermediate/${key}/val_predictions.json
+        --val-dir data/01_raw/datasets/val
+        --test-predictions data/02_intermediate/${key}/test_predictions.json
+        --test-dir data/01_raw/datasets/test
+        --output-dir data/07_model_output/${key}
+        --iou-threshold ${evaluate.iou_threshold}
+        --conf-min ${evaluate.conf_min}
+        --conf-max ${evaluate.conf_max}
+        --conf-step ${evaluate.conf_step}
+      deps:
+        - scripts/evaluate.py
+        - src/detector_leaderboard
+        - data/02_intermediate/${key}/val_predictions.json
+        - data/02_intermediate/${key}/test_predictions.json
+        - data/01_raw/datasets/val/images
+        - data/01_raw/datasets/val/labels
+        - data/01_raw/datasets/test/images
+        - data/01_raw/datasets/test/labels
+      params:
+        - evaluate.iou_threshold
+        - evaluate.conf_min
+        - evaluate.conf_max
+        - evaluate.conf_step
+      outs:
+        - data/07_model_output/${key}/metrics.json
+
+  evaluate_dfine:
+    foreach: ${dfine_detectors}
+    do:
+      cmd: >-
+        uv run python scripts/evaluate.py
+        --model-name ${key}
+        --val-predictions data/02_intermediate/${key}/val_predictions.json
+        --val-dir data/01_raw/datasets/val
+        --test-predictions data/02_intermediate/${key}/test_predictions.json
+        --test-dir data/01_raw/datasets/test
+        --output-dir data/07_model_output/${key}
+        --iou-threshold ${evaluate.iou_threshold}
+        --conf-min ${evaluate.conf_min}
+        --conf-max ${evaluate.conf_max}
+        --conf-step ${evaluate.conf_step}
+      deps:
+        - scripts/evaluate.py
+        - src/detector_leaderboard
+        - data/02_intermediate/${key}/val_predictions.json
+        - data/02_intermediate/${key}/test_predictions.json
+        - data/01_raw/datasets/val/images
+        - data/01_raw/datasets/val/labels
+        - data/01_raw/datasets/test/images
+        - data/01_raw/datasets/test/labels
+      params:
+        - evaluate.iou_threshold
+        - evaluate.conf_min
+        - evaluate.conf_max
+        - evaluate.conf_step
+      outs:
+        - data/07_model_output/${key}/metrics.json
+
+  # --- profiling: params, GFLOPs, latency/img, peak GPU memory ------------
+  profile_ultralytics:
+    foreach: ${ultralytics_detectors}
+    do:
+      cmd: >-
+        uv run python scripts/profile_model.py --backend ultralytics
+        --model-name ${key}
+        --model-path data/01_raw/models/${key}/${item.model_filename}
+        --image-size ${profile.ultralytics_image_size}
+        --warmup ${profile.warmup} --iters ${profile.iters}
+        --output-dir data/07_model_output/${key}
+      deps:
+        - scripts/profile_model.py
+        - src/detector_leaderboard
+        - data/01_raw/models/${key}
+      params:
+        - profile.ultralytics_image_size
+        - profile.warmup
+        - profile.iters
+      outs:
+        - data/07_model_output/${key}/profile.json
+
+  profile_dfine:
+    foreach: ${dfine_detectors}
+    do:
+      cmd: >-
+        uv run python scripts/profile_model.py --backend dfine
+        --model-name ${key}
+        --model-dir data/06_models/${key}
+        --image-size ${profile.dfine_image_size}
+        --warmup ${profile.warmup} --iters ${profile.iters}
+        --output-dir data/07_model_output/${key}
+      deps:
+        - scripts/profile_model.py
+        - src/detector_leaderboard
+        - data/06_models/${key}
+      params:
+        - profile.dfine_image_size
+        - profile.warmup
+        - profile.iters
+      outs:
+        - data/07_model_output/${key}/profile.json
+
+  # --- YOLO control: train same-arch YOLO on our data, reuse ultra path ---
+  train_yolo:
+    foreach: ${yolo_trained_detectors}
+    do:
+      cmd: >-
+        uv run python scripts/train_yolo.py
+        --arch ${item.arch}
+        --train-dir data/01_raw/datasets/train
+        --val-dir data/01_raw/datasets/val
+        --output-dir data/06_models/${key}
+        --imgsz ${train_yolo.imgsz}
+        --epochs ${train_yolo.epochs}
+        --batch ${train_yolo.batch}
+        --patience ${train_yolo.patience}
+        --seed ${train_yolo.seed}
+        --workers ${item.workers}
+      deps:
+        - scripts/train_yolo.py
+        - data/01_raw/datasets/train/images
+        - data/01_raw/datasets/train/labels
+        - data/01_raw/datasets/val/images
+        - data/01_raw/datasets/val/labels
+      params:
+        - train_yolo.imgsz
+        - train_yolo.epochs
+        - train_yolo.batch
+        - train_yolo.patience
+        - train_yolo.seed
+      outs:
+        - data/06_models/${key}/best.pt
+
+  infer_test_yolo_trained:
+    foreach: ${yolo_trained_detectors}
+    do:
+      cmd: >-
+        uv run python scripts/infer.py --backend ultralytics
+        --data-dir data/01_raw/datasets/test
+        --model-path data/06_models/${key}/best.pt
+        --output-file data/02_intermediate/${key}/test_predictions.json
+        --confidence-threshold ${infer_ultralytics.confidence_threshold}
+        --iou-nms ${infer_ultralytics.iou_nms}
+        --image-size ${infer_ultralytics.image_size}
+      deps:
+        - scripts/infer.py
+        - src/detector_leaderboard
+        - data/06_models/${key}/best.pt
+        - data/01_raw/datasets/test/images
+      params:
+        - infer_ultralytics.confidence_threshold
+        - infer_ultralytics.iou_nms
+        - infer_ultralytics.image_size
+      outs:
+        - data/02_intermediate/${key}/test_predictions.json
+
+  infer_val_yolo_trained:
+    foreach: ${yolo_trained_detectors}
+    do:
+      cmd: >-
+        uv run python scripts/infer.py --backend ultralytics
+        --data-dir data/01_raw/datasets/val
+        --model-path data/06_models/${key}/best.pt
+        --output-file data/02_intermediate/${key}/val_predictions.json
+        --confidence-threshold ${infer_ultralytics.confidence_threshold}
+        --iou-nms ${infer_ultralytics.iou_nms}
+        --image-size ${infer_ultralytics.image_size}
+      deps:
+        - scripts/infer.py
+        - src/detector_leaderboard
+        - data/06_models/${key}/best.pt
+        - data/01_raw/datasets/val/images
+      params:
+        - infer_ultralytics.confidence_threshold
+        - infer_ultralytics.iou_nms
+        - infer_ultralytics.image_size
+      outs:
+        - data/02_intermediate/${key}/val_predictions.json
+
+  evaluate_yolo_trained:
+    foreach: ${yolo_trained_detectors}
+    do:
+      cmd: >-
+        uv run python scripts/evaluate.py
+        --model-name ${key}
+        --val-predictions data/02_intermediate/${key}/val_predictions.json
+        --val-dir data/01_raw/datasets/val
+        --test-predictions data/02_intermediate/${key}/test_predictions.json
+        --test-dir data/01_raw/datasets/test
+        --output-dir data/07_model_output/${key}
+        --iou-threshold ${evaluate.iou_threshold}
+        --conf-min ${evaluate.conf_min}
+        --conf-max ${evaluate.conf_max}
+        --conf-step ${evaluate.conf_step}
+      deps:
+        - scripts/evaluate.py
+        - src/detector_leaderboard
+        - data/02_intermediate/${key}/val_predictions.json
+        - data/02_intermediate/${key}/test_predictions.json
+        - data/01_raw/datasets/val/images
+        - data/01_raw/datasets/val/labels
+        - data/01_raw/datasets/test/images
+        - data/01_raw/datasets/test/labels
+      params:
+        - evaluate.iou_threshold
+        - evaluate.conf_min
+        - evaluate.conf_max
+        - evaluate.conf_step
+      outs:
+        - data/07_model_output/${key}/metrics.json
+
+  profile_yolo_trained:
+    foreach: ${yolo_trained_detectors}
+    do:
+      cmd: >-
+        uv run python scripts/profile_model.py --backend ultralytics
+        --model-name ${key}
+        --model-path data/06_models/${key}/best.pt
+        --image-size ${profile.ultralytics_image_size}
+        --warmup ${profile.warmup} --iters ${profile.iters}
+        --output-dir data/07_model_output/${key}
+      deps:
+        - scripts/profile_model.py
+        - src/detector_leaderboard
+        - data/06_models/${key}/best.pt
+      params:
+        - profile.ultralytics_image_size
+        - profile.warmup
+        - profile.iters
+      outs:
+        - data/07_model_output/${key}/profile.json
+
+  # --- other HF DETR detectors (RT-DETRv2, LW-DETR): finetune + reuse path -
+  train_hf:
+    foreach: ${hf_detr_detectors}
+    do:
+      cmd: >-
+        uv run python scripts/train.py
+        --checkpoint ${item.checkpoint}
+        --train-dir data/01_raw/datasets/train
+        --val-dir data/01_raw/datasets/val
+        --output-dir data/06_models/${key}
+        --image-size ${train.image_size}
+        --epochs ${train.epochs}
+        --batch-size ${train.batch_size}
+        --learning-rate ${train.learning_rate}
+        --weight-decay ${train.weight_decay}
+        --early-stop-patience ${train.early_stop_patience}
+        --seed ${train.seed}
+      deps:
+        - scripts/train.py
+        - src/detector_leaderboard
+        - data/01_raw/datasets/train/images
+        - data/01_raw/datasets/train/labels
+        - data/01_raw/datasets/val/images
+        - data/01_raw/datasets/val/labels
+      params:
+        - train.image_size
+        - train.epochs
+        - train.batch_size
+        - train.learning_rate
+        - train.weight_decay
+        - train.early_stop_patience
+        - train.seed
+      outs:
+        - data/06_models/${key}
+
+  infer_test_hf:
+    foreach: ${hf_detr_detectors}
+    do:
+      cmd: >-
+        uv run python scripts/infer.py --backend hf_detr
+        --data-dir data/01_raw/datasets/test
+        --model-dir data/06_models/${key}
+        --output-file data/02_intermediate/${key}/test_predictions.json
+        --confidence-threshold ${infer_dfine.confidence_threshold}
+      deps:
+        - scripts/infer.py
+        - src/detector_leaderboard
+        - data/06_models/${key}
+        - data/01_raw/datasets/test/images
+      params:
+        - infer_dfine.confidence_threshold
+      outs:
+        - data/02_intermediate/${key}/test_predictions.json
+
+  infer_val_hf:
+    foreach: ${hf_detr_detectors}
+    do:
+      cmd: >-
+        uv run python scripts/infer.py --backend hf_detr
+        --data-dir data/01_raw/datasets/val
+        --model-dir data/06_models/${key}
+        --output-file data/02_intermediate/${key}/val_predictions.json
+        --confidence-threshold ${infer_dfine.confidence_threshold}
+      deps:
+        - scripts/infer.py
+        - src/detector_leaderboard
+        - data/06_models/${key}
+        - data/01_raw/datasets/val/images
+      params:
+        - infer_dfine.confidence_threshold
+      outs:
+        - data/02_intermediate/${key}/val_predictions.json
+
+  evaluate_hf:
+    foreach: ${hf_detr_detectors}
+    do:
+      cmd: >-
+        uv run python scripts/evaluate.py
+        --model-name ${key}
+        --val-predictions data/02_intermediate/${key}/val_predictions.json
+        --val-dir data/01_raw/datasets/val
+        --test-predictions data/02_intermediate/${key}/test_predictions.json
+        --test-dir data/01_raw/datasets/test
+        --output-dir data/07_model_output/${key}
+        --iou-threshold ${evaluate.iou_threshold}
+        --conf-min ${evaluate.conf_min}
+        --conf-max ${evaluate.conf_max}
+        --conf-step ${evaluate.conf_step}
+      deps:
+        - scripts/evaluate.py
+        - src/detector_leaderboard
+        - data/02_intermediate/${key}/val_predictions.json
+        - data/02_intermediate/${key}/test_predictions.json
+        - data/01_raw/datasets/val/images
+        - data/01_raw/datasets/val/labels
+        - data/01_raw/datasets/test/images
+        - data/01_raw/datasets/test/labels
+      params:
+        - evaluate.iou_threshold
+        - evaluate.conf_min
+        - evaluate.conf_max
+        - evaluate.conf_step
+      outs:
+        - data/07_model_output/${key}/metrics.json
+
+  profile_hf:
+    foreach: ${hf_detr_detectors}
+    do:
+      cmd: >-
+        uv run python scripts/profile_model.py --backend hf_detr
+        --model-name ${key}
+        --model-dir data/06_models/${key}
+        --image-size ${profile.dfine_image_size}
+        --warmup ${profile.warmup} --iters ${profile.iters}
+        --output-dir data/07_model_output/${key}
+      deps:
+        - scripts/profile_model.py
+        - src/detector_leaderboard
+        - data/06_models/${key}
+      params:
+        - profile.dfine_image_size
+        - profile.warmup
+        - profile.iters
+      outs:
+        - data/07_model_output/${key}/profile.json
+
+  # --- aggregate accuracy + efficiency into a ranked leaderboard ----------
+  leaderboard:
+    cmd: >-
+      uv run python scripts/leaderboard.py
+      --results-dir data/07_model_output
+      --output-dir data/08_reporting
+    deps:
+      - scripts/leaderboard.py
+      - src/detector_leaderboard
+      - data/07_model_output
+    metrics:
+      - data/08_reporting/leaderboard.json:
+          cache: false
+    outs:
+      - data/08_reporting/leaderboard.txt
